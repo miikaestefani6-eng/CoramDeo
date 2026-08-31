@@ -1,26 +1,41 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --coram-deo-deep: #0F2131;
+  --coram-deo-burgundy: #8C183F;
+  --coram-deo-gold: #C4A47C;
+  --coram-deo-surface: #F8F9FA;
+  --coram-deo-border: #E1E7EA;
+  --coram-deo-muted: #5E6E82;
+  --coram-deo-study: #315494;
+  --coram-deo-ministry: #1A707E;
+  --coram-deo-create: #DA763A;
+  --coram-deo-author: #70387D;
+  --coram-deo-library: #BF9B3E;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-background: var(--coram-deo-surface);
+  --color-foreground: var(--coram-deo-deep);
+  --font-sans: var(--font-inter);
+  --font-serif: var(--font-merriweather);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
+* { box-sizing: border-box; }
+
+html { min-height: 100%; }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  min-height: 100vh;
+  margin: 0;
+  background: var(--coram-deo-surface);
+  color: var(--coram-deo-deep);
+  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
+}
+
+button, input { font: inherit; }
+
+::selection {
+  background: var(--coram-deo-gold);
+  color: var(--coram-deo-deep);
 }
