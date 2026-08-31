@@ -1,0 +1,4 @@
+import { ModuleShell } from "../components/ModuleShell";
+
+const plans = ["Evangelhos em 30 dias", "Bíblia em 1 ano", "Plano personalizado"];
+export default function PlanosPage() { return <ModuleShell title="Planos de leitura" description="Acompanhe seus planos e marque cada leitura concluída. Você pode manter mais de um plano ativo."><div className="grid gap-4 md:grid-cols-3">{plans.map((p, i) => <article key={p} className="rounded-xl bg-white p-6 shadow-[0_4px_12px_rgba(0,0,0,0.06)]"><p className="text-xs font-semibold uppercase tracking-wider text-[#C4A47C]">Plano {i + 1}</p><h2 className="mt-2 font-serif text-xl font-bold">{p}</h2><p className="mt-2 text-sm text-[#5E6E82]">0% concluído</p><div className="mt-4 h-2 rounded-full bg-[#E1E7EA]"><div className="h-full w-0 rounded-full bg-[#C4A47C]" /></div></article>)}</div></ModuleShell>; }
