@@ -7,12 +7,6 @@ const quickAccess = [
   { title: "Biblioteca", description: "Explore nosso acervo.", color: "#BF9B3E", icon: "▤" },
 ];
 
-const videos = [
-  { title: "O Verbo que se fez carne", author: "Coram Deo", duration: "14:32" },
-  { title: "Como ler a Bíblia com profundidade", author: "Coram Deo", duration: "21:08" },
-  { title: "Introdução ao Evangelho de João", author: "Coram Deo", duration: "18:45" },
-];
-
 export default function Home() {
   return (
     <div className="min-h-screen bg-[#F8F9FA] text-[#0F2131]">
@@ -20,58 +14,21 @@ export default function Home() {
         <CoramLogo />
         <nav className="mt-12 space-y-1" aria-label="Navegação principal">
           {["Início", "Estudar", "Devocional", "Ministério", "Biblioteca", "Favoritos", "Minhas Anotações"].map((item, index) => (
-            <button key={item} className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-sm font-medium transition ${index === 0 ? "bg-white/10 text-white" : "text-[#5E6E82] hover:bg-white/5 hover:text-white"}`}>
-              <span className="w-5 text-center text-[#C4A47C]">{["⌂", "◉", "✦", "◈", "▤", "☆", "□"][index]}</span>
-              {item}
-            </button>
+            <a key={item} href={index === 0 ? "/" : `/${["", "estudar", "devocional", "ministerio", "biblioteca", "favoritos", "anotacoes"][index]}`} className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-sm font-medium transition ${index === 0 ? "bg-white/10 text-white" : "text-[#5E6E82] hover:bg-white/5 hover:text-white"}`}>
+              <span className="w-5 text-center text-[#C4A47C]">{["⌂", "◉", "✦", "◈", "▤", "☆", "□"][index]}</span>{item}
+            </a>
           ))}
         </nav>
-        <div className="mt-auto rounded-xl border border-white/10 bg-white/5 p-4">
-          <p className="text-xs font-semibold text-white">Plano de leitura</p>
-          <p className="mt-1 text-xs text-white/55">Evangelho de João</p>
-          <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/10"><div className="h-full w-[29%] rounded-full bg-[#C4A47C]" /></div>
-          <p className="mt-2 text-[11px] text-white/45">6 de 21 capítulos</p>
-        </div>
-        <div className="mt-4 border-t border-white/10 pt-4">
-          <div className="flex items-center gap-3"><div className="h-9 w-9 rounded-full bg-[#C4A47C]/20" /><div><p className="text-sm font-semibold text-white">Minha conta</p><p className="text-[11px] text-white/45">Ver perfil</p></div></div>
-        </div>
+        <div className="mt-auto rounded-xl border border-white/10 bg-white/5 p-4"><p className="text-xs font-semibold text-white">Plano de leitura</p><p className="mt-1 text-xs text-white/55">Evangelho de João</p><div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/10"><div className="h-full w-[29%] rounded-full bg-[#C4A47C]" /></div><p className="mt-2 text-[11px] text-white/45">6 de 21 capítulos</p></div>
+        <div className="mt-4 border-t border-white/10 pt-4"><div className="flex items-center gap-3"><div className="h-9 w-9 rounded-full bg-[#C4A47C]/20" /><div><p className="text-sm font-semibold text-white">Minha conta</p><p className="text-[11px] text-white/45">Ver perfil</p></div></div></div>
       </aside>
-
       <main className="lg:pl-[268px]">
-        <header className="flex items-center justify-between px-5 py-5 lg:px-10 lg:py-7">
-          <div><p className="text-sm text-[#5E6E82]">Bom dia! 👋</p><p className="font-serif text-xl font-bold">Que bom ter você aqui.</p></div>
-          <button className="relative rounded-xl border border-[#E1E7EA] bg-white p-3" aria-label="Notificações"><span>♢</span><span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-[#8C183F]" /></button>
-        </header>
-
-        <section className="mx-5 overflow-hidden rounded-[12px] bg-[#0F2131] px-6 py-12 text-center shadow-[0_4px_12px_rgba(0,0,0,0.06)] lg:mx-10 lg:px-16 lg:py-16">
-          <p className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-[#C4A47C]">Coram Deo</p>
-          <h1 className="mx-auto max-w-2xl font-serif text-3xl font-bold leading-tight text-white md:text-[38px]">O que você deseja compreender hoje?</h1>
-          <p className="mx-auto mt-3 max-w-xl text-sm text-white/60">Pesquise uma passagem, personagem, tema ou referência bíblica.</p>
-          <div className="mx-auto mt-7 flex max-w-2xl items-center gap-3 rounded-xl bg-white p-2 text-left shadow-lg">
-            <span className="pl-3 text-xl text-[#8C183F]">⌕</span>
-            <input className="min-w-0 flex-1 bg-transparent px-1 py-3 text-sm text-[#0F2131] outline-none placeholder:text-[#5E6E82]" placeholder="versículo, passagem, personagem ou tema" />
-            <button className="rounded-lg bg-[#8C183F] px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90">Pesquisar</button>
-          </div>
-        </section>
-
-        <section className="px-5 py-7 lg:px-10 lg:py-8">
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-4 lg:gap-4">
-            {quickAccess.map((item) => <button key={item.title} className="rounded-xl bg-white p-5 text-left shadow-[0_4px_12px_rgba(0,0,0,0.06)] transition hover:-translate-y-0.5" style={{ borderTop: `3px solid ${item.color}` }}><span className="text-xl" style={{ color: item.color }}>{item.icon}</span><p className="mt-3 font-serif font-bold">{item.title}</p><p className="mt-1 text-xs leading-5 text-[#5E6E82]">{item.description}</p></button>)}
-          </div>
-        </section>
-
-        <section className="px-5 pb-8 lg:px-10">
-          <div className="flex items-end justify-between"><div><p className="text-xs font-semibold uppercase tracking-wider text-[#C4A47C]">Conteúdo oficial</p><h2 className="mt-1 font-serif text-2xl font-bold">Destaque Coram Deo</h2></div><button className="text-sm font-semibold text-[#8C183F]">Ver biblioteca →</button></div>
-          <article className="mt-5 grid overflow-hidden rounded-xl bg-white shadow-[0_4px_12px_rgba(0,0,0,0.06)] md:grid-cols-[1.15fr_1fr]">
-            <div className="min-h-[230px] bg-[#0F2131] p-8 md:p-10"><p className="text-xs font-semibold uppercase tracking-widest text-[#C4A47C]">Estudo bíblico</p><h3 className="mt-4 font-serif text-3xl font-bold text-white">João 1:1</h3><p className="mt-4 max-w-xl font-serif text-base italic leading-7 text-white/75">“No princípio era o Verbo, e o Verbo estava com Deus, e o Verbo era Deus.”</p><button className="mt-7 rounded-lg bg-[#8C183F] px-5 py-3 text-sm font-semibold text-white">Acessar estudo completo →</button></div>
-            <div className="flex items-center justify-center bg-[#E1E7EA]/40 p-8"><div className="text-center"><div className="mx-auto flex h-28 w-24 items-end justify-center rounded-md border border-[#C4A47C]/40 bg-[#C4A47C]/15 pb-4 text-4xl text-[#C4A47C]">✦</div><p className="mt-4 text-xs text-[#5E6E82]">Um convite para compreender a Palavra com profundidade.</p></div></div>
-          </article>
-        </section>
-
-        <section className="px-5 pb-24 lg:px-10 lg:pb-12"><div className="flex items-end justify-between"><div><h2 className="font-serif text-2xl font-bold">Vídeos recentes</h2><p className="mt-1 text-sm text-[#5E6E82]">Conteúdos para continuar sua jornada.</p></div></div><div className="mt-5 grid gap-4 md:grid-cols-3">{videos.map((video) => <article key={video.title} className="overflow-hidden rounded-xl bg-white shadow-[0_4px_12px_rgba(0,0,0,0.06)]"><div className="relative flex h-36 items-center justify-center bg-[#0F2131]"><span className="flex h-11 w-11 items-center justify-center rounded-full bg-[#8C183F] text-white">▶</span><span className="absolute bottom-2 right-2 rounded bg-[#0F2131] px-2 py-1 text-[10px] text-white">{video.duration}</span></div><div className="p-4"><h3 className="font-semibold leading-5">{video.title}</h3><p className="mt-2 text-xs text-[#5E6E82]">{video.author}</p></div></article>)}</div></section>
+        <header className="flex items-center justify-between px-5 py-5 lg:px-10 lg:py-7"><div><p className="text-sm text-[#5E6E82]">Bom dia! 👋</p><p className="font-serif text-xl font-bold">Que bom ter você aqui.</p></div><a href="/notificacoes" className="relative rounded-xl border border-[#E1E7EA] bg-white p-3" aria-label="Notificações"><span>♢</span><span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-[#8C183F]" /></a></header>
+        <section className="mx-5 overflow-hidden rounded-[12px] bg-[#0F2131] px-6 py-12 text-center shadow-[0_4px_12px_rgba(0,0,0,0.06)] lg:mx-10 lg:px-16 lg:py-16"><p className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-[#C4A47C]">Coram Deo</p><h1 className="mx-auto max-w-2xl font-serif text-3xl font-bold leading-tight text-white md:text-[38px]">O que você deseja compreender hoje?</h1><p className="mx-auto mt-3 max-w-xl text-sm text-white/60">Pesquise uma passagem, personagem, tema ou referência bíblica.</p><div className="mx-auto mt-7 flex max-w-2xl items-center gap-3 rounded-xl bg-white p-2 text-left shadow-lg"><span className="pl-3 text-xl text-[#8C183F]">⌕</span><input className="min-w-0 flex-1 bg-transparent px-1 py-3 text-sm text-[#0F2131] outline-none placeholder:text-[#5E6E82]" placeholder="versículo, passagem, personagem ou tema" /><button className="rounded-lg bg-[#8C183F] px-5 py-3 text-sm font-semibold text-white">Pesquisar</button></div></section>
+        <section className="px-5 py-7 lg:px-10 lg:py-8"><div className="grid grid-cols-2 gap-3 md:grid-cols-4 lg:gap-4">{quickAccess.map((item) => <a key={item.title} href={`/${item.title === "Ministério" ? "ministerio" : item.title.toLowerCase()}`} className="rounded-xl bg-white p-5 text-left shadow-[0_4px_12px_rgba(0,0,0,0.06)]" style={{ borderTop: `3px solid ${item.color}` }}><span className="text-xl" style={{ color: item.color }}>{item.icon}</span><p className="mt-3 font-serif font-bold">{item.title}</p><p className="mt-1 text-xs leading-5 text-[#5E6E82]">{item.description}</p></a>)}</div></section>
+        <section className="px-5 pb-8 lg:px-10"><div className="flex items-end justify-between"><div><p className="text-xs font-semibold uppercase tracking-wider text-[#C4A47C]">Conteúdo oficial</p><h2 className="mt-1 font-serif text-2xl font-bold">Destaque Coram Deo</h2></div><a href="/biblioteca" className="text-sm font-semibold text-[#8C183F]">Ver biblioteca →</a></div><article className="mt-5 grid overflow-hidden rounded-xl bg-white shadow-[0_4px_12px_rgba(0,0,0,0.06)] md:grid-cols-[1.15fr_1fr]"><div className="min-h-[230px] bg-[#0F2131] p-8 md:p-10"><p className="text-xs font-semibold uppercase tracking-widest text-[#C4A47C]">Estudo bíblico</p><h3 className="mt-4 font-serif text-3xl font-bold text-white">João 1:1</h3><p className="mt-4 max-w-xl font-serif text-base italic leading-7 text-white/75">“No princípio era o Verbo, e o Verbo estava com Deus, e o Verbo era Deus.”</p><button className="mt-7 rounded-lg bg-[#8C183F] px-5 py-3 text-sm font-semibold text-white">Acessar estudo completo →</button></div><div className="flex items-center justify-center bg-[#E1E7EA]/40 p-8"><div className="text-center"><div className="mx-auto flex h-28 w-24 items-end justify-center rounded-md border border-[#C4A47C]/40 bg-[#C4A47C]/15 pb-4 text-4xl text-[#C4A47C]">✦</div><p className="mt-4 text-xs text-[#5E6E82]">Um convite para compreender a Palavra com profundidade.</p></div></div></article></section>
       </main>
-
-      <button className="fixed bottom-6 right-5 flex items-center gap-2 rounded-full bg-[#8C183F] px-4 py-3 text-sm font-semibold text-white shadow-xl lg:bottom-8 lg:right-8" aria-label="Abrir Sião"><span className="text-[#C4A47C]">✦</span> Sião</button>
+      <a href="/sião" className="fixed bottom-6 right-5 flex items-center gap-2 rounded-full bg-[#8C183F] px-4 py-3 text-sm font-semibold text-white shadow-xl lg:bottom-8 lg:right-8"><span className="text-[#C4A47C]">✦</span> Sião</a>
     </div>
   );
 }
