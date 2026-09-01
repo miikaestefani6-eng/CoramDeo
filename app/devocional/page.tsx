@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { ModuleShell } from "../components/ModuleShell";
 
 export default function DevocionalPage() {
@@ -10,8 +10,15 @@ export default function DevocionalPage() {
   const [error, setError] = useState("");
   const [devotional, setDevotional] = useState<any>(null);
 
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const incomingQuery = params.get("query")?.trim();
+    if (incomingQuery) setQuery(incomingQuery);
+  }, []);
+
   async function prepare(event?: FormEvent) {
     event?.preventDefault();
+    if (query.trim().length < 2) return;
     setLoading(true); setError(""); setDevotional(null);
     try {
       const response = await fetch("/api/devocional", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ query: query.trim() }) });
