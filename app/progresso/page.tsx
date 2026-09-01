@@ -15,12 +15,12 @@ export default function ProgressoPage() {
       if (!user) { setLoading(false); return; }
       const { data, error } = await supabase
         .from("study_activity")
-        .select("created_at, minutes, activity_type")
+        .select("activity_date, minutes, activity_type")
         .eq("user_id", user.id)
         .eq("activity_type", "reading_completed");
       if (error) { setLoading(false); return; }
       const rows = data ?? [];
-      const days = new Set(rows.map((r) => new Date(r.created_at).toISOString().slice(0, 10))).size;
+      const days = new Set(rows.map((r) => r.activity_date)).size;
       const minutes = rows.reduce((sum, r) => sum + Number(r.minutes ?? 0), 0);
       setStats({ studies: rows.length, days, minutes });
       setLoading(false);
