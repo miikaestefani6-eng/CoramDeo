@@ -22,13 +22,13 @@ export default function AssinaturaPage() {
       return;
     }
 
-    if (!data?.url) {
+    if (!data?.checkout_url) {
       setError(data?.error || "O checkout não está disponível neste momento.");
       setLoading(false);
       return;
     }
 
-    window.location.assign(data.url);
+    window.location.assign(data.checkout_url);
   }
 
   return (
