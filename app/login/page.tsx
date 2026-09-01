@@ -9,7 +9,6 @@ function safeNext(value: string | null) {
 }
 
 export default function LoginPage() {
-  const supabase = createClient();
   const router = useRouter();
   const searchParams = useSearchParams();
   const next = safeNext(searchParams.get("next"));
@@ -25,6 +24,7 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     setMessage("");
+    const supabase = createClient();
     const result = mode === "login"
       ? await supabase.auth.signInWithPassword({ email, password })
       : await supabase.auth.signUp({ email, password, options: { data: { full_name: name } } });
@@ -38,6 +38,7 @@ export default function LoginPage() {
   async function social(provider: "google" | "apple") {
     setLoading(true);
     setMessage("");
+    const supabase = createClient();
     const redirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`;
     const { error } = await supabase.auth.signInWithOAuth({ provider, options: { redirectTo } });
     if (error) {
