@@ -41,6 +41,53 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL(target, request.url));
   }
 
+  if (user && !isPublic) {
+    const { data: { session } } = await supabase.auth.getSession();
+    const accessToken = session?.access_token;
+
+    if (!accessToken) {
+      const subscriptionUrl = request.nextUrl.clone();
+      subscriptionUrl.pathname = "/assinatura";
+      subscriptionUrl.search = "";
+      return NextResponse.redirect(subscriptionUrl);
+    }
+
+    try {
+      const entitlementResponse = await fetch(
+        `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/coram-v1-entitlements`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            apikey: process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
+            "Content-Type": "application/json",
+          },
+          cache: "no-store",
+        },
+      );
+
+      if (!entitlementResponse.ok) {
+        throw new Error(`Entitlement check failed with ${entitlementResponse.status}`);
+      }
+
+      const entitlement = await entitlementResponse.json();
+
+      if (entitlement?.access_granted !== true) {
+        const subscriptionUrl = request.nextUrl.clone();
+        subscriptionUrl.pathname = "/assinatura";
+        subscriptionUrl.search = "";
+        subscriptionUrl.searchParams.set("next", pathname);
+        return NextResponse.redirect(subscriptionUrl);
+      }
+    } catch {
+      const subscriptionUrl = request.nextUrl.clone();
+      subscriptionUrl.pathname = "/assinatura";
+      subscriptionUrl.search = "";
+      subscriptionUrl.searchParams.set("next", pathname);
+      return NextResponse.redirect(subscriptionUrl);
+    }
+  }
+
   return response;
 }
 
