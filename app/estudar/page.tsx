@@ -1,55 +1,90 @@
-import Link from "next/link";
+"use client";
 
-const layers = [
-  ["Evidências", "Visão geral do livro", "Propósito, estrutura, autoria e lugar da passagem dentro do livro."],
-  ["Evidências", "Contexto do texto", "O que acontece antes e depois e como o trecho participa do argumento do autor."],
-  ["Evidências", "Contexto histórico-cultural", "Costumes, instituições, cenário social e elementos culturais relevantes."],
-  ["Evidências", "Linha do tempo", "Acontecimentos e personagens situados dentro do período bíblico."],
-  ["Evidências", "Línguas bíblicas", "Termos relevantes observados no grego, hebraico ou aramaico."],
-  ["Evidências", "Arqueologia", "Lugares, achados e evidências arqueológicas pertinentes quando disponíveis."],
-  ["Evidências", "Fontes e evidências", "Fontes históricas externas úteis para compreender o texto com responsabilidade."],
-  ["Interpretação", "Aplicação", "Princípios de vida cristã derivados do sentido do texto, sem confundir significado e aplicação."],
-  ["Interpretação", "Análise literária", "Gênero, estrutura e recursos literários usados pelo autor."],
-  ["Interpretação", "Contexto histórico e profético", "Acontecimentos históricos e dimensões proféticas relacionadas à passagem."],
-  ["Interpretação", "Escatologia", "Conexões escatológicas relevantes, distinguindo texto bíblico e interpretações posteriores."],
-  ["Interpretação", "Conexões bíblicas", "Relações com outros textos das Escrituras para ampliar a compreensão."],
-  ["Interpretação", "Teologia", "Principais afirmações teológicas da passagem e sua relação com a mensagem bíblica."],
-  ["Tradição", "Camadas do texto", "Diferentes leituras e tradições interpretativas desenvolvidas ao longo do tempo."],
-  ["Tradição", "Tradição judaica", "Elementos da tradição judaica relevantes para o ambiente histórico e interpretativo."],
-  ["Tradição", "Interpretação histórica", "Leituras históricas importantes, preservando diferenças entre tradições."],
-];
+import Link from "next/link";
+import { FormEvent, useState } from "react";
+
+const groups = [
+  ["Evidências", ["Visão geral do livro", "Contexto do texto", "Contexto histórico-cultural", "Linha do tempo", "Línguas bíblicas", "Arqueologia", "Fontes e evidências"]],
+  ["Interpretação", ["Aplicação", "Análise literária", "Contexto histórico e profético", "Escatologia", "Conexões bíblicas", "Teologia"]],
+  ["Tradição", ["Camadas do texto", "Tradição judaica", "Interpretação histórica"]],
+] as const;
+
+const modes = ["equilibrado", "academico", "devocional", "ministerial"] as const;
+const modeLabel: Record<string, string> = { equilibrado: "Equilibrado", academico: "Acadêmico", devocional: "Devocional", ministerial: "Ministerial" };
 
 export default function EstudarPage() {
+  const [query, setQuery] = useState("Romanos 8:28");
+  const [mode, setMode] = useState<(typeof modes)[number]>("equilibrado");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [study, setStudy] = useState<any>(null);
+
+  async function search(event?: FormEvent) {
+    event?.preventDefault();
+    if (query.trim().length < 2) return;
+    setLoading(true); setError(""); setStudy(null);
+    try {
+      const response = await fetch("/api/estudos", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ query: query.trim(), mode }) });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data?.error || "Não foi possível preparar o estudo.");
+      setStudy(data);
+    } catch (e) { setError(e instanceof Error ? e.message : "Não foi possível preparar o estudo."); }
+    finally { setLoading(false); }
+  }
+
+  const layers = Array.isArray(study?.layers) ? study.layers : [];
+  const grouped = groups.map(([group, titles]) => ({ group, items: titles.map(title => layers.find((x: any) => x.title === title)).filter(Boolean) }));
+
   return (
-    <main className="min-h-screen bg-[#F8F9FA] text-[#0F2131]">
-      <header className="border-b border-[#E1E7EA] bg-white px-5 py-4 lg:px-10">
+    <main className="min-h-screen bg-[#F6F5F2] text-[#0F2131]">
+      <header className="border-b border-[#E1E3E2] bg-white/95 px-5 py-4 backdrop-blur lg:px-10">
         <div className="mx-auto flex max-w-6xl items-center justify-between">
           <Link href="/" className="font-serif text-xl font-bold">Coram Deo</Link>
-          <span className="text-xs font-medium text-[#5E6E82]">Estudo bíblico · Sião</span>
+          <Link href="/" className="text-xs font-semibold text-[#8C183F]">← Voltar para Hoje</Link>
         </div>
       </header>
+
       <div className="mx-auto max-w-6xl px-5 py-8 lg:px-10 lg:py-12">
-        <section className="mx-auto max-w-4xl text-center">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#C4A47C]">Sião · Estudo</p>
-          <h1 className="mt-3 font-serif text-3xl font-bold md:text-4xl">O que você deseja compreender?</h1>
-          <p className="mx-auto mt-3 max-w-2xl text-sm leading-6 text-[#5E6E82]">Pesquise uma passagem, personagem, acontecimento ou tema. O estudo será organizado em 16 camadas.</p>
-          <div className="mt-7 flex items-center gap-3 rounded-xl bg-white p-2 shadow-[0_4px_12px_rgba(0,0,0,0.06)]">
-            <span className="pl-3 text-xl text-[#8C183F]">⌕</span>
-            <input defaultValue="João 1" className="min-w-0 flex-1 bg-transparent px-1 py-3 text-sm outline-none" aria-label="Pesquisar estudo" />
-            <button className="rounded-lg bg-[#8C183F] px-5 py-3 text-sm font-semibold text-white">Pesquisar</button>
+        <section className="overflow-hidden rounded-[28px] bg-[#0F2131] px-6 py-9 shadow-[0_18px_50px_rgba(15,33,49,0.12)] sm:px-10 lg:px-14 lg:py-12">
+          <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#C4A47C]">Estudar</p>
+          <h1 className="mt-3 max-w-3xl font-serif text-3xl font-bold leading-tight text-white sm:text-4xl lg:text-5xl">Não apenas leia. Compreenda.</h1>
+          <p className="mt-4 max-w-2xl text-sm leading-6 text-white/55 sm:text-base">Pesquise uma passagem, personagem ou tema e explore o texto em camadas de evidência, interpretação e tradição.</p>
+
+          <form onSubmit={search} className="mt-8 max-w-3xl rounded-2xl bg-white p-2 shadow-xl">
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <div className="flex min-w-0 flex-1 items-center gap-2 px-3"><span className="text-xl text-[#8C183F]">⌕</span><input value={query} onChange={e => setQuery(e.target.value)} className="min-w-0 flex-1 bg-transparent py-3 text-sm outline-none" placeholder="Ex.: Romanos 8:28, Ester, fé..." aria-label="Pesquisar passagem ou tema" /></div>
+              <button disabled={loading} className="rounded-xl bg-[#8C183F] px-6 py-3 text-sm font-bold text-white transition hover:bg-[#731333] disabled:cursor-wait disabled:opacity-60">{loading ? "Pesquisando…" : "Começar estudo"}</button>
+            </div>
+          </form>
+
+          <div className="mt-4 flex flex-wrap gap-2">
+            {modes.map(item => <button type="button" key={item} onClick={() => setMode(item)} className={`rounded-full border px-3 py-1.5 text-[11px] font-semibold transition ${mode === item ? "border-[#C4A47C] bg-[#C4A47C]/15 text-[#F3D9A7]" : "border-white/10 text-white/45 hover:text-white"}`}>{modeLabel[item]}</button>)}
           </div>
         </section>
-        <section className="mx-auto mt-10 max-w-4xl">
-          <div className="flex flex-wrap items-end justify-between gap-4">
-            <div><p className="text-xs font-semibold uppercase tracking-wider text-[#C4A47C]">Estudo encontrado</p><h2 className="mt-1 font-serif text-3xl font-bold">João 1</h2><p className="mt-1 text-sm text-[#5E6E82]">As 16 camadas aparecem juntas para você estudar no seu ritmo.</p></div>
-            <div className="flex gap-2"><button className="rounded-lg border border-[#E1E7EA] bg-white px-4 py-2 text-sm font-semibold">☆ Favoritar</button><button className="rounded-lg border border-[#E1E7EA] bg-white px-4 py-2 text-sm font-semibold">+ Anotar</button></div>
-          </div>
-          <div className="mt-7 space-y-4">
-            {layers.map(([group, title, text], index) => <article key={title} className="rounded-xl border border-[#E1E7EA] bg-white p-5 shadow-[0_4px_12px_rgba(0,0,0,0.04)] md:p-6"><div className="flex gap-4"><div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#0F2131] text-xs font-bold text-[#C4A47C]">{index + 1}</div><div><div className="flex flex-wrap items-center gap-2"><span className="rounded-full bg-[#F8F9FA] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-[#5E6E82]">{group}</span><h3 className="font-serif text-lg font-bold">{title}</h3></div><p className="mt-2 text-sm leading-6 text-[#5E6E82]">{text}</p></div></div></article>)}
-          </div>
-        </section>
+
+        {error && <div className="mt-6 rounded-2xl border border-[#8C183F]/15 bg-[#8C183F]/5 p-4 text-sm text-[#8C183F]">{error}</div>}
+
+        {study ? (
+          <section className="mt-10">
+            <div className="flex flex-wrap items-end justify-between gap-5">
+              <div><p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#C4A47C]">Estudo gerado pelo Coram Deo</p><h2 className="mt-1 font-serif text-3xl font-bold">{study.title}</h2><p className="mt-1 text-sm text-[#5E6E82]">{study.reference} · modo {modeLabel[study.mode ?? mode]}</p></div>
+              <div className="rounded-xl border border-[#E1E3E2] bg-white px-4 py-3 text-xs font-semibold text-[#5E6E82]">{study.cached ? "✓ Do acervo" : "✦ Novo estudo"}</div>
+            </div>
+
+            <div className="mt-8 space-y-10">
+              {grouped.map(({ group, items }) => <div key={group}><div className="mb-4 flex items-center gap-3"><span className="h-px flex-1 bg-[#DDE2E3]" /><p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#8C183F]">{group}</p><span className="h-px flex-1 bg-[#DDE2E3]" /></div><div className="grid gap-4 lg:grid-cols-2">{items.map((layer: any) => <article key={layer.key ?? layer.title} className="rounded-2xl border border-[#E1E3E2] bg-white p-6 shadow-sm"><div className="flex gap-4"><div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#0F2131] text-xs font-bold text-[#C4A47C]">{String(layer.key ?? "").replace("l", "") || "•"}</div><div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><h3 className="font-serif text-lg font-bold">{layer.title}</h3>{layer.confidence && <span className="rounded-full bg-[#F6F5F2] px-2 py-1 text-[9px] font-bold uppercase tracking-wider text-[#5E6E82]">Confiança {layer.confidence}</span>}</div><p className="mt-3 text-sm leading-6 text-[#5E6E82]">{layer.text}</p>{layer.evidence_note && <p className="mt-4 border-l-2 border-[#C4A47C] pl-3 text-xs leading-5 text-[#7A8794]">{layer.evidence_note}</p>}</div></div></article>)}</div></div>)}
+            </div>
+          </section>
+        ) : (
+          <section className="mt-10 grid gap-4 md:grid-cols-3">
+            <div className="rounded-2xl border border-[#E1E3E2] bg-white p-6"><span className="text-2xl text-[#315494]">◉</span><h2 className="mt-4 font-serif text-xl font-bold">Evidências</h2><p className="mt-2 text-sm leading-6 text-[#5E6E82]">Contexto, história, línguas, arqueologia e fontes.</p></div>
+            <div className="rounded-2xl border border-[#E1E3E2] bg-white p-6"><span className="text-2xl text-[#8C183F]">✦</span><h2 className="mt-4 font-serif text-xl font-bold">Interpretação</h2><p className="mt-2 text-sm leading-6 text-[#5E6E82]">Teologia, literatura, conexões e aplicação responsável.</p></div>
+            <div className="rounded-2xl border border-[#E1E3E2] bg-white p-6"><span className="text-2xl text-[#BF9B3E]">◈</span><h2 className="mt-4 font-serif text-xl font-bold">Tradição</h2><p className="mt-2 text-sm leading-6 text-[#5E6E82]">Leituras históricas e tradição judaica com distinções claras.</p></div>
+          </section>
+        )}
       </div>
-      <button className="fixed bottom-6 right-5 flex items-center gap-2 rounded-full bg-[#8C183F] px-4 py-3 text-sm font-semibold text-white shadow-xl" aria-label="Tirar dúvida com Sião"><span className="text-[#C4A47C]">✦</span> Tirar dúvida com Sião</button>
+
+      <Link href="/siao" className="fixed bottom-6 right-5 z-40 flex items-center gap-2 rounded-full bg-[#8C183F] px-4 py-3 text-xs font-bold text-white shadow-xl"><span className="text-[#C4A47C]">✦</span> Perguntar ao Sião</Link>
     </main>
   );
 }
