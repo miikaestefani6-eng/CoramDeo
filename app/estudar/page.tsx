@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 
 const groups = [
   ["Evidências", ["Visão geral do livro", "Contexto do texto", "Contexto histórico-cultural", "Linha do tempo", "Línguas bíblicas", "Arqueologia", "Fontes e evidências"]],
@@ -16,13 +16,21 @@ export default function EstudarPage() {
   const [query, setQuery] = useState("Romanos 8:28");
   const [mode, setMode] = useState<(typeof modes)[number]>("equilibrado");
   const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [completed, setCompleted] = useState(false);
   const [error, setError] = useState("");
   const [study, setStudy] = useState<any>(null);
+  const [startedAt, setStartedAt] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!study || startedAt) return;
+    setStartedAt(Date.now());
+  }, [study, startedAt]);
 
   async function search(event?: FormEvent) {
     event?.preventDefault();
     if (query.trim().length < 2) return;
-    setLoading(true); setError(""); setStudy(null);
+    setLoading(true); setError(""); setStudy(null); setCompleted(false); setStartedAt(null);
     try {
       const response = await fetch("/api/estudos", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ query: query.trim(), mode }) });
       const data = await response.json();
@@ -30,6 +38,23 @@ export default function EstudarPage() {
       setStudy(data);
     } catch (e) { setError(e instanceof Error ? e.message : "Não foi possível preparar o estudo."); }
     finally { setLoading(false); }
+  }
+
+  async function completeStudy() {
+    if (!study || saving || completed) return;
+    setSaving(true); setError("");
+    const minutes = startedAt ? Math.max(1, Math.round((Date.now() - startedAt) / 60000)) : 1;
+    try {
+      const response = await fetch("/api/estudos/concluir", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ study, minutes }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data?.error || "Não foi possível concluir o estudo.");
+      setCompleted(true);
+    } catch (e) { setError(e instanceof Error ? e.message : "Não foi possível concluir o estudo."); }
+    finally { setSaving(false); }
   }
 
   const layers = Array.isArray(study?.layers) ? study.layers : [];
@@ -52,8 +77,7 @@ export default function EstudarPage() {
 
           <form onSubmit={search} className="mt-8 max-w-3xl rounded-2xl bg-white p-2 shadow-xl">
             <div className="flex flex-col gap-2 sm:flex-row">
-              <div className="flex min-w-0 flex-1 items-center gap-2 px-3"><span className="text-xl text-[#8C183F]">⌕</span><input value={query} onChange={e => setQuery(e.target.value)} className="min-w-0 flex-1 bg-transparent py-3 text-sm outline-none" placeholder="Ex.: Romanos 8:28, Ester, fé..." aria-label="Pesquisar passagem ou tema" /></div>
-              <button disabled={loading} className="rounded-xl bg-[#8C183F] px-6 py-3 text-sm font-bold text-white transition hover:bg-[#731333] disabled:cursor-wait disabled:opacity-60">{loading ? "Pesquisando…" : "Começar estudo"}</button>
+              <div className="flex min-w-0 flex-1 items-center gap-2 px-3"><span className="text-xl text-[#8C183F]">⌕</span><input value={query} onChange={e => setQuery(e.target.value)} className="min-w-0 flex-1 bg-transparent py-3 text-sm outline-none" placeholder="Ex.: Romanos 8:28, Ester, fé..." aria-label="Pesquisar passagem ou tema" /><button type="submit" disabled={loading} className="rounded-xl bg-[#8C183F] px-6 py-3 text-sm font-bold text-white transition hover:bg-[#731333] disabled:cursor-wait disabled:opacity-60">{loading ? "Pesquisando…" : "Começar estudo"}</button></div>
             </div>
           </form>
 
@@ -73,6 +97,11 @@ export default function EstudarPage() {
 
             <div className="mt-8 space-y-10">
               {grouped.map(({ group, items }) => <div key={group}><div className="mb-4 flex items-center gap-3"><span className="h-px flex-1 bg-[#DDE2E3]" /><p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#8C183F]">{group}</p><span className="h-px flex-1 bg-[#DDE2E3]" /></div><div className="grid gap-4 lg:grid-cols-2">{items.map((layer: any) => <article key={layer.key ?? layer.title} className="rounded-2xl border border-[#E1E3E2] bg-white p-6 shadow-sm"><div className="flex gap-4"><div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#0F2131] text-xs font-bold text-[#C4A47C]">{String(layer.key ?? "").replace("l", "") || "•"}</div><div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><h3 className="font-serif text-lg font-bold">{layer.title}</h3>{layer.confidence && <span className="rounded-full bg-[#F6F5F2] px-2 py-1 text-[9px] font-bold uppercase tracking-wider text-[#5E6E82]">Confiança {layer.confidence}</span>}</div><p className="mt-3 text-sm leading-6 text-[#5E6E82]">{layer.text}</p>{layer.evidence_note && <p className="mt-4 border-l-2 border-[#C4A47C] pl-3 text-xs leading-5 text-[#7A8794]">{layer.evidence_note}</p>}</div></div></article>)}</div></div>)}
+            </div>
+
+            <div className="mt-10 rounded-2xl border border-[#E1E3E2] bg-white p-5 shadow-sm sm:flex sm:items-center sm:justify-between sm:gap-5">
+              <div><p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#C4A47C]">Sua caminhada</p><p className="mt-1 text-sm font-semibold text-[#0F2131]">Terminou este estudo?</p><p className="mt-1 text-xs leading-5 text-[#7A8794]">Registre a conclusão para atualizar seu progresso e continuar de onde parou.</p></div>
+              <button type="button" onClick={completeStudy} disabled={saving || completed} className="mt-4 w-full rounded-xl bg-[#8C183F] px-6 py-3 text-sm font-bold text-white transition hover:bg-[#731333] disabled:cursor-default disabled:opacity-70 sm:mt-0 sm:w-auto">{completed ? "✓ Estudo concluído" : saving ? "Registrando…" : "Concluir estudo"}</button>
             </div>
           </section>
         ) : (
