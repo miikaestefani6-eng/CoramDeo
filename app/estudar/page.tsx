@@ -23,6 +23,12 @@ export default function EstudarPage() {
   const [startedAt, setStartedAt] = useState<number | null>(null);
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const incomingQuery = params.get("query")?.trim();
+    if (incomingQuery) setQuery(incomingQuery);
+  }, []);
+
+  useEffect(() => {
     if (!study || startedAt) return;
     setStartedAt(Date.now());
   }, [study, startedAt]);
