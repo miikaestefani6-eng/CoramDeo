@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { FunctionsHttpError } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 
 export default function AssinaturaPage() {
@@ -17,7 +18,16 @@ export default function AssinaturaPage() {
     });
 
     if (invokeError) {
-      setError("Não foi possível iniciar o checkout. Entre na sua conta e tente novamente.");
+      let detail = invokeError.message || "Não foi possível iniciar o checkout.";
+      if (invokeError instanceof FunctionsHttpError) {
+        try {
+          const payload = await invokeError.context.json();
+          detail = payload?.error || payload?.message || detail;
+        } catch {
+          // Keep the SDK error when the function response is not JSON.
+        }
+      }
+      setError(detail);
       setLoading(false);
       return;
     }
