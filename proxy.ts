@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { hasActiveCoramAccess } from "@/lib/access";
 
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request });
@@ -23,7 +24,7 @@ export async function proxy(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser();
   const pathname = request.nextUrl.pathname;
-  const isPublic = pathname === "/login" || pathname.startsWith("/auth/");
+  const isPublic = pathname === "/login" || pathname === "/assinatura" || pathname.startsWith("/auth/");
 
   if (!user && !isPublic) {
     const loginUrl = request.nextUrl.clone();
@@ -37,6 +38,17 @@ export async function proxy(request: NextRequest) {
     const next = request.nextUrl.searchParams.get("next");
     const target = next && next.startsWith("/") && !next.startsWith("//") ? next : "/";
     return NextResponse.redirect(new URL(target, request.url));
+  }
+
+  if (user && !isPublic) {
+    const { allowed } = await hasActiveCoramAccess();
+    if (!allowed) {
+      const subscriptionUrl = request.nextUrl.clone();
+      subscriptionUrl.pathname = "/assinatura";
+      subscriptionUrl.search = "";
+      subscriptionUrl.searchParams.set("next", pathname);
+      return NextResponse.redirect(subscriptionUrl);
+    }
   }
 
   return response;
