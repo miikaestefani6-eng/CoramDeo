@@ -32,13 +32,17 @@ function isAllowedWebhook(payload: Payload, request: Request) {
   const expected = Deno.env.get("KIWIFY_WEBHOOK_TOKEN")?.trim();
   if (!expected) return false;
 
-  const urlToken = new URL(request.url).searchParams.get("token")?.trim();
+  const url = new URL(request.url);
+  const urlToken = url.searchParams.get("token")?.trim();
+  const signature = url.searchParams.get("signature")?.trim();
   const headerToken = request.headers.get("x-kiwify-token")?.trim()
     ?? request.headers.get("x-webhook-token")?.trim();
   const auth = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "").trim();
   const bodyToken = typeof payload.token === "string" ? payload.token.trim() : null;
 
-  return [urlToken, headerToken, auth, bodyToken].some((candidate) => candidate === expected);
+  // Kiwify's webhook delivery sends the configured webhook token as the
+  // `signature` query parameter. Keep support for the other token forms too.
+  return [signature, urlToken, headerToken, auth, bodyToken].some((candidate) => candidate === expected);
 }
 
 async function findAuthUserByEmail(admin: ReturnType<typeof createClient>, email: string) {
