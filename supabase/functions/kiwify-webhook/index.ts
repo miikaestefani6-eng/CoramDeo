@@ -4,10 +4,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 type Payload = Record<string, any>;
 
 const json = (body: unknown, status = 200) =>
-  new Response(JSON.stringify(body), {
-    status,
-    headers: { "Content-Type": "application/json" },
-  });
+  new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 
 function eventType(payload: Payload) {
   return String(payload.webhook_event_type ?? payload.event ?? payload.type ?? "").toLowerCase();
@@ -28,21 +25,47 @@ function extractSubscription(payload: Payload) {
   };
 }
 
-function isAllowedWebhook(payload: Payload, request: Request) {
+function hex(bytes: ArrayBuffer) {
+  return Array.from(new Uint8Array(bytes)).map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+async function hmacSha1(secret: string, body: string) {
+  const key = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(secret),
+    { name: "HMAC", hash: "SHA-1" },
+    false,
+    ["sign"],
+  );
+  return hex(await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(body)));
+}
+
+function constantTimeEqual(a: string, b: string) {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
+}
+
+async function isAllowedWebhook(payload: Payload, request: Request, rawBody: string) {
   const expected = Deno.env.get("KIWIFY_WEBHOOK_TOKEN")?.trim();
   if (!expected) return false;
 
   const url = new URL(request.url);
-  const urlToken = url.searchParams.get("token")?.trim();
   const signature = url.searchParams.get("signature")?.trim();
-  const headerToken = request.headers.get("x-kiwify-token")?.trim()
-    ?? request.headers.get("x-webhook-token")?.trim();
+  const kiwifySignature = request.headers.get("x-kiwify-signature")?.trim();
+  const token = url.searchParams.get("token")?.trim();
+  const headerToken = request.headers.get("x-kiwify-token")?.trim() ?? request.headers.get("x-webhook-token")?.trim();
   const auth = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "").trim();
   const bodyToken = typeof payload.token === "string" ? payload.token.trim() : null;
 
-  // Kiwify's webhook delivery sends the configured webhook token as the
-  // `signature` query parameter. Keep support for the other token forms too.
-  return [signature, urlToken, headerToken, auth, bodyToken].some((candidate) => candidate === expected);
+  if ([token, headerToken, auth, bodyToken].some((candidate) => candidate === expected)) return true;
+
+  const suppliedSignature = signature ?? kiwifySignature;
+  if (!suppliedSignature) return false;
+
+  const calculated = await hmacSha1(expected, rawBody);
+  return constantTimeEqual(suppliedSignature.toLowerCase(), calculated.toLowerCase());
 }
 
 async function findAuthUserByEmail(admin: ReturnType<typeof createClient>, email: string) {
@@ -58,87 +81,43 @@ async function findAuthUserByEmail(admin: ReturnType<typeof createClient>, email
 
 async function updateEntitlement(admin: ReturnType<typeof createClient>, userId: string, enabled: boolean, expiresAt: string | null, subscriptionId: string | null, metadata: Payload) {
   const key = "coram_deo";
-  const { data: existing, error: findError } = await admin
-    .from("user_entitlements")
-    .select("id")
-    .eq("user_id", userId)
-    .eq("entitlement_key", key)
-    .limit(1)
-    .maybeSingle();
+  const { data: existing, error: findError } = await admin.from("user_entitlements").select("id").eq("user_id", userId).eq("entitlement_key", key).limit(1).maybeSingle();
   if (findError) throw findError;
-
-  const row = {
-    user_id: userId,
-    entitlement_key: key,
-    source: "kiwify",
-    subscription_id: subscriptionId,
-    enabled,
-    type: "subscription",
-    expires_at: expiresAt,
-    metadata,
-    updated_at: new Date().toISOString(),
-  };
-
-  if (existing?.id) {
-    const { error } = await admin.from("user_entitlements").update(row).eq("id", existing.id);
-    if (error) throw error;
-  } else {
-    const { error } = await admin.from("user_entitlements").insert(row);
-    if (error) throw error;
-  }
+  const row = { user_id: userId, entitlement_key: key, source: "kiwify", subscription_id: subscriptionId, enabled, type: "subscription", expires_at: expiresAt, metadata, updated_at: new Date().toISOString() };
+  const result = existing?.id ? admin.from("user_entitlements").update(row).eq("id", existing.id) : admin.from("user_entitlements").insert(row);
+  const { error } = await result;
+  if (error) throw error;
 }
 
 async function updateSubscription(admin: ReturnType<typeof createClient>, userId: string, payload: Payload, status: string, cancelAtPeriodEnd: boolean, periodEnd: string | null) {
   const sub = extractSubscription(payload);
-  const providerSubscriptionId = sub.id;
-
-  const { data: existing, error: findError } = await admin
-    .from("user_subscriptions")
-    .select("id")
-    .eq("user_id", userId)
-    .eq("provider", "kiwify")
-    .limit(1)
-    .maybeSingle();
+  const { data: existing, error: findError } = await admin.from("user_subscriptions").select("id").eq("user_id", userId).eq("provider", "kiwify").limit(1).maybeSingle();
   if (findError) throw findError;
-
   const row = {
     user_id: userId,
     plan_id: sub.planId,
     status,
     provider: "kiwify",
     provider_customer_id: payload.Customer?.email ?? null,
-    provider_subscription_id: providerSubscriptionId,
+    provider_subscription_id: sub.id,
     current_period_start: sub.startDate,
     current_period_end: periodEnd,
     canceled_at: cancelAtPeriodEnd ? new Date().toISOString() : null,
     cancel_at_period_end: cancelAtPeriodEnd,
-    metadata: {
-      order_id: payload.order_id ?? null,
-      order_status: payload.order_status ?? null,
-      webhook_event_type: eventType(payload),
-      product: payload.Product ?? null,
-      subscription: payload.Subscription ?? null,
-    },
+    metadata: { order_id: payload.order_id ?? null, order_status: payload.order_status ?? null, webhook_event_type: eventType(payload), product: payload.Product ?? null, subscription: payload.Subscription ?? null },
     updated_at: new Date().toISOString(),
   };
-
-  if (existing?.id) {
-    const { error } = await admin.from("user_subscriptions").update(row).eq("id", existing.id);
-    if (error) throw error;
-  } else {
-    const { error } = await admin.from("user_subscriptions").insert({ ...row, created_at: new Date().toISOString() });
-    if (error) throw error;
-  }
-
-  return { subscriptionId: providerSubscriptionId, nextPayment: sub.nextPayment };
+  const result = existing?.id ? admin.from("user_subscriptions").update(row).eq("id", existing.id) : admin.from("user_subscriptions").insert({ ...row, created_at: new Date().toISOString() });
+  const { error } = await result;
+  if (error) throw error;
+  return { subscriptionId: sub.id, nextPayment: sub.nextPayment };
 }
 
 Deno.serve(async (request) => {
   if (request.method !== "POST") return json({ error: "Method not allowed" }, 405);
-
-  const payload = await request.json().catch(() => null) as Payload | null;
-  if (!payload) return json({ error: "Invalid JSON" }, 400);
-  if (!isAllowedWebhook(payload, request)) return json({ error: "Unauthorized webhook" }, 401);
+  const rawBody = await request.text();
+  const payload = JSON.parse(rawBody) as Payload;
+  if (!(await isAllowedWebhook(payload, request, rawBody))) return json({ error: "Unauthorized webhook" }, 401);
 
   const email = extractEmail(payload);
   const event = eventType(payload);
@@ -148,19 +127,13 @@ Deno.serve(async (request) => {
   const productId = String(payload.Product?.product_id ?? "").trim();
   if (configuredProductId && productId && configuredProductId !== productId) return json({ ok: true, ignored: "different_product" });
 
-  const admin = createClient(
-    Deno.env.get("SUPABASE_URL")!,
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-    { auth: { autoRefreshToken: false, persistSession: false } },
-  );
-
+  const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { autoRefreshToken: false, persistSession: false } });
   const user = await findAuthUserByEmail(admin, email);
   if (!user) return json({ error: "Coram Deo account not found for customer email" }, 404);
 
   const sub = extractSubscription(payload);
   const now = new Date();
   const eventDate = now.toISOString();
-
   const approved = event === "order_approved" || event === "compra_aprovada" || (event === "" && payload.order_status === "paid");
   const renewed = event === "subscription_renewed";
   const canceled = event === "subscription_canceled";
@@ -172,27 +145,23 @@ Deno.serve(async (request) => {
     await updateEntitlement(admin, user.id, false, eventDate, result.subscriptionId, { event, order_id: payload.order_id ?? null });
     return json({ ok: true, action: "revoked" });
   }
-
   if (canceled) {
     const periodEnd = sub.nextPayment ?? null;
     const result = await updateSubscription(admin, user.id, payload, "canceled", true, periodEnd);
     await updateEntitlement(admin, user.id, true, periodEnd, result.subscriptionId, { event, order_id: payload.order_id ?? null });
     return json({ ok: true, action: "cancel_at_period_end" });
   }
-
   if (late) {
-    const graceUntil = new Date(now.getTime() + 5 * 24 * 60 * 60 * 1000).toISOString();
+    const graceUntil = new Date(now.getTime() + 5 * 86400000).toISOString();
     const result = await updateSubscription(admin, user.id, payload, "past_due", false, graceUntil);
     await updateEntitlement(admin, user.id, true, graceUntil, result.subscriptionId, { event, order_id: payload.order_id ?? null });
     return json({ ok: true, action: "grace_period" });
   }
-
   if (approved || renewed) {
     const periodEnd = sub.nextPayment ?? null;
     const result = await updateSubscription(admin, user.id, payload, "active", false, periodEnd);
     await updateEntitlement(admin, user.id, true, periodEnd, result.subscriptionId, { event, order_id: payload.order_id ?? null });
     return json({ ok: true, action: "activated" });
   }
-
   return json({ ok: true, ignored: event });
 });
