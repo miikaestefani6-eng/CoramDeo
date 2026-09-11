@@ -7,6 +7,17 @@ export async function hasActiveCoramAccess() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { user: null, allowed: false };
 
+  // Active Coram Deo administrators have permanent product access and must not
+  // depend on a paid subscription entitlement to enter the authenticated app.
+  const { data: admin } = await supabase
+    .from("coram_admins")
+    .select("role, active")
+    .eq("user_id", user.id)
+    .eq("active", true)
+    .maybeSingle();
+
+  if (admin) return { user, allowed: true, accessSource: "admin" as const };
+
   const now = new Date().toISOString();
   const { data, error } = await supabase
     .from("user_entitlements")
@@ -19,7 +30,7 @@ export async function hasActiveCoramAccess() {
     .maybeSingle();
 
   if (error) return { user, allowed: false, error };
-  return { user, allowed: Boolean(data) };
+  return { user, allowed: Boolean(data), accessSource: data ? "entitlement" as const : null };
 }
 
 export async function requireCoramAccess() {
