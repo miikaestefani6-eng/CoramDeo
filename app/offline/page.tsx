@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export default function OfflinePage() {
   return (
     <main className="flex min-h-screen items-center justify-center bg-[#080D13] px-6 text-[#F8F2E8]">
@@ -6,7 +8,7 @@ export default function OfflinePage() {
         <p className="mt-6 text-[10px] font-bold uppercase tracking-[.25em] text-[#D5B579]">Coram Deo</p>
         <h1 className="mt-3 font-serif text-3xl font-semibold">Você está sem conexão.</h1>
         <p className="mt-4 text-sm leading-7 text-white/55">Assim que a internet voltar, abra novamente o Coram Deo para continuar sua jornada de estudos.</p>
-        <button onClick={undefined} className="mt-7 rounded-full bg-[#D5B579] px-6 py-3 text-sm font-bold text-[#111820]">Tentar novamente</button>
+        <Link href="/" className="mt-7 inline-flex rounded-full bg-[#D5B579] px-6 py-3 text-sm font-bold text-[#111820]">Tentar novamente</Link>
       </section>
     </main>
   );
