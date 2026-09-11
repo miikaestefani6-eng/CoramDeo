@@ -28,7 +28,7 @@ export default function LoginClient() {
   const next = safeNext(requestedNext);
   const callbackError = searchParams.get("error");
   const isReset = searchParams.get("reset") === "1";
-  const [mode, setMode] = useState<"login" | "signup">("login");
+  const [mode, setMode] = useState<"login" | "signup">(searchParams.get("trial") === "1" ? "signup" : "login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
