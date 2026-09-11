@@ -23,8 +23,13 @@ function Brand() {
   );
 }
 
-export default function AssinaturaPage() {
+type PageProps = { searchParams: Promise<{ reason?: string }> };
+
+export default async function AssinaturaPage({ searchParams }: PageProps) {
   const checkoutUrl = process.env.NEXT_PUBLIC_KIWIFY_CHECKOUT_URL;
+  const { reason } = await searchParams;
+  const trialUsed = reason === "trial_used";
+
   return (
     <main className="min-h-screen bg-[#080D13] text-[#F8F2E8]">
       <div className="mx-auto flex min-h-screen max-w-7xl flex-col px-5 md:px-8">
@@ -34,9 +39,9 @@ export default function AssinaturaPage() {
         </header>
         <section className="grid flex-1 items-center gap-12 py-14 lg:grid-cols-[.95fr_1.05fr] lg:py-20">
           <div>
-            <p className="text-[11px] font-bold uppercase tracking-[.28em] text-[#D5B579]">Sua jornada começa aqui</p>
-            <h1 className="mt-5 max-w-2xl font-serif text-5xl font-semibold leading-[1.02] tracking-[-.03em] sm:text-6xl">Continue mais fundo na Palavra. <span className="text-[#D5B579]">Agora por dentro do Coram Deo.</span></h1>
-            <p className="mt-6 max-w-xl text-base leading-8 text-white/55">Você já conheceu a proposta. Agora ative o acesso completo ao Zion e às ferramentas que acompanham sua rotina de estudo, reflexão e continuidade.</p>
+            <p className="text-[11px] font-bold uppercase tracking-[.28em] text-[#D5B579]">{trialUsed ? "Período gratuito já utilizado" : "Sua jornada começa aqui"}</p>
+            <h1 className="mt-5 max-w-2xl font-serif text-5xl font-semibold leading-[1.02] tracking-[-.03em] sm:text-6xl">{trialUsed ? <>Seu teste gratuito já foi utilizado. <span className="text-[#D5B579]">Continue no Coram Deo.</span></> : <>Continue mais fundo na Palavra. <span className="text-[#D5B579]">Agora por dentro do Coram Deo.</span></>}</h1>
+            <p className="mt-6 max-w-xl text-base leading-8 text-white/55">{trialUsed ? "Para manter o benefício justo para todos, os 7 dias gratuitos são liberados uma única vez. Você pode continuar normalmente assinando o Coram Deo." : "Você já conheceu a proposta. Agora ative o acesso completo ao Zion e às ferramentas que acompanham sua rotina de estudo, reflexão e continuidade."}</p>
             <div className="mt-8 rounded-[26px] border border-[#C9AA72]/18 bg-[#0D141C] p-6">
               <div className="flex items-start gap-4"><span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[#C9AA72]/30 bg-[#C9AA72]/8 font-serif text-lg text-[#D5B579]">Z</span><div><h2 className="font-serif text-2xl text-[#F8F2E8]">Zion, seu companheiro de pesquisa bíblica</h2><p className="mt-2 text-sm leading-7 text-white/48">Uma investigação organizada em 16 camadas — contexto, línguas bíblicas, teologia, arqueologia, aplicação, fontes e evidências.</p></div></div>
             </div>
