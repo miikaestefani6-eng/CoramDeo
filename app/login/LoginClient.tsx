@@ -14,7 +14,8 @@ function Brand() {
 export default function LoginClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const next = safeNext(searchParams.get("next"));
+  const requestedNext = searchParams.get("next");
+  const next = safeNext(requestedNext);
   const callbackError = searchParams.get("error");
   const [mode, setMode] = useState<"login" | "signup">("login");
   const [email, setEmail] = useState("");
@@ -27,7 +28,17 @@ export default function LoginClient() {
     e.preventDefault(); setLoading(true); setMessage("");
     const supabase = createClient();
     const result = mode === "login" ? await supabase.auth.signInWithPassword({ email, password }) : await supabase.auth.signUp({ email, password, options: { data: { full_name: name } } });
-    if (result.error) setMessage(result.error.message); else if (mode === "signup") setMessage("Cadastro realizado. Verifique seu e-mail para confirmar a conta."); else router.push(next);
+    if (result.error) setMessage(result.error.message);
+    else if (mode === "signup") setMessage("Cadastro realizado. Verifique seu e-mail para confirmar a conta.");
+    else {
+      let target = next;
+      if (!requestedNext && result.data.user) {
+        const { data: admin } = await supabase.from("coram_admins").select("role").eq("user_id", result.data.user.id).eq("active", true).maybeSingle();
+        if (admin) target = "/admin";
+      }
+      router.push(target);
+      router.refresh();
+    }
     setLoading(false);
   }
 
