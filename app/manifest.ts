@@ -5,7 +5,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "Coram Deo",
     short_name: "Coram Deo",
     description: "Estudo bíblico, devocionais e pesquisa com Zion para uma vida diante de Deus.",
-    start_url: "/",
+    start_url: "/app",
     scope: "/",
     display: "standalone",
     orientation: "portrait-primary",
