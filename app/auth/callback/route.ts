@@ -18,10 +18,17 @@ export async function GET(request: Request) {
     return NextResponse.redirect(new URL("/login?error=auth_callback", url.origin));
   }
 
-  // Idempotent: existing users/claims are left untouched; new confirmed users receive one 7-day trial.
   const { data: { user } } = await supabase.auth.getUser();
   if (user) {
-    await supabase.rpc("bootstrap_coram_trial", { p_user_id: user.id });
+    const deviceId = typeof user.user_metadata?.trial_device_id === "string" ? user.user_metadata.trial_device_id : null;
+    const { data: trial } = await supabase.rpc("bootstrap_coram_trial", {
+      p_user_id: user.id,
+      p_device_id: deviceId,
+    });
+
+    if (trial && trial.started === false && ["identity_already_claimed", "device_already_claimed", "trial_reuse_detected"].includes(trial.reason)) {
+      return NextResponse.redirect(new URL("/assinatura?reason=trial_used", url.origin));
+    }
   }
 
   return NextResponse.redirect(new URL(safeNext, url.origin));
