@@ -1,4 +1,4 @@
-const CACHE = "coram-deo-v2";
+const CACHE = "coram-deo-v3";
 const APP_SHELL = ["/offline", "/pwa-icon.svg", "/manifest.webmanifest"];
 
 self.addEventListener("install", (event) => {
@@ -11,6 +11,37 @@ self.addEventListener("activate", (event) => {
     caches.keys().then((keys) => Promise.all(keys.filter((key) => key !== CACHE).map((key) => caches.delete(key))))
   );
   self.clients.claim();
+});
+
+self.addEventListener("push", (event) => {
+  let data = {};
+  try { data = event.data ? event.data.json() : {}; } catch { data = { body: event.data?.text() || "" }; }
+  const title = data.title || "Coram Deo";
+  const options = {
+    body: data.body || "Você tem uma nova atualização no Coram Deo.",
+    icon: data.icon || "/icon",
+    badge: data.badge || "/icon",
+    tag: data.tag || "coram-deo",
+    renotify: false,
+    data: { url: data.url || "/notificacoes" },
+  };
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const target = new URL(event.notification.data?.url || "/notificacoes", self.location.origin).href;
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then(async (clients) => {
+      for (const client of clients) {
+        if ("focus" in client) {
+          try { await client.navigate(target); } catch {}
+          return client.focus();
+        }
+      }
+      if (self.clients.openWindow) return self.clients.openWindow(target);
+    })
+  );
 });
 
 self.addEventListener("fetch", (event) => {
