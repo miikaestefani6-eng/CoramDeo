@@ -1,32 +1,52 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireCoramAccess } from "@/lib/access";
+import { createClient } from "@/lib/supabase/server";
 
-const layers = [
-  ["Evidências", "Visão geral do livro"], ["Evidências", "Contexto do texto"], ["Evidências", "Contexto histórico-cultural"], ["Evidências", "Linha do tempo"], ["Evidências", "Línguas bíblicas"], ["Evidências", "Arqueologia"], ["Evidências", "Fontes e evidências"],
-  ["Interpretação", "Aplicação"], ["Interpretação", "Análise literária"], ["Interpretação", "Contexto histórico e profético"], ["Interpretação", "Escatologia"], ["Interpretação", "Conexões bíblicas"], ["Interpretação", "Teologia"],
-  ["Tradição", "Camadas do texto"], ["Tradição", "Tradição judaica"], ["Tradição", "Interpretação histórica"],
-];
+const FUNCTION_NAME = "coram-v1-research";
 
-function normalize(value: string) { return value.trim().toLowerCase().replace(/\s+/g, " "); }
-
-export async function GET(request: NextRequest) {
+export async function POST(request: NextRequest) {
   const access = await requireCoramAccess();
-  if (access.status === 401) return NextResponse.json({ error: "Entre na sua conta para acessar os estudos." }, { status: 401 });
-  if (access.status === 402) return NextResponse.json({ error: "Sua assinatura do Coram Deo está inativa." }, { status: 402 });
+  if (access.status === 401) {
+    return NextResponse.json({ error: "Entre na sua conta para iniciar um estudo." }, { status: 401 });
+  }
+  if (access.status === 402) {
+    return NextResponse.json({ error: "Sua assinatura do Coram Deo está inativa." }, { status: 402 });
+  }
 
-  const query = request.nextUrl.searchParams.get("q");
-  if (!query?.trim()) return NextResponse.json({ error: "Informe uma passagem, personagem, acontecimento ou tema." }, { status: 400 });
-  const normalizedQuery = normalize(query);
+  const supabase = await createClient();
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session?.access_token) {
+    return NextResponse.json({ error: "Sua sessão expirou. Entre novamente para continuar." }, { status: 401 });
+  }
 
-  const cache = globalThis as typeof globalThis & { __coramStudyCache?: Map<string, unknown> };
-  cache.__coramStudyCache ??= new Map();
-  const existing = cache.__coramStudyCache.get(normalizedQuery);
-  if (existing) return NextResponse.json({ ...(existing as object), cached: true });
+  const body = await request.json().catch(() => ({}));
+  const query = String(body.query ?? body.reference ?? "").trim();
+  const mode = ["equilibrado", "academico", "devocional", "ministerial"].includes(String(body.mode))
+    ? String(body.mode)
+    : "equilibrado";
+  const familiarity = ["zero", "aprendendo", "frequente", "aprofundamento"].includes(String(body.familiarity))
+    ? String(body.familiarity)
+    : undefined;
 
-  const result = {
-    query: query.trim(), normalizedQuery, status: "ready", source: "study-engine", cached: false,
-    layers: layers.map(([group, title], index) => ({ number: index + 1, group, title, content: `Conteúdo da camada ${index + 1} para ${query.trim()} será preenchido pelo mecanismo de estudo.` })),
-  };
-  cache.__coramStudyCache.set(normalizedQuery, result);
-  return NextResponse.json(result);
+  if (query.length < 2 || query.length > 160) {
+    return NextResponse.json({ error: "Digite uma passagem, personagem ou tema curto." }, { status: 400 });
+  }
+
+  const base = process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(/\/$/, "");
+  if (!base) {
+    return NextResponse.json({ error: "Backend indisponível." }, { status: 500 });
+  }
+
+  const upstream = await fetch(`${base}/functions/v1/${FUNCTION_NAME}`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${session.access_token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ query, mode, ...(familiarity ? { familiarity } : {}) }),
+    cache: "no-store",
+  });
+
+  const payload = await upstream.json().catch(() => ({ error: "Resposta inválida do mecanismo de estudo." }));
+  return NextResponse.json(payload, { status: upstream.status });
 }
