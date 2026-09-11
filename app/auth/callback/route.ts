@@ -18,5 +18,11 @@ export async function GET(request: Request) {
     return NextResponse.redirect(new URL("/login?error=auth_callback", url.origin));
   }
 
+  // Idempotent: existing users/claims are left untouched; new confirmed users receive one 7-day trial.
+  const { data: { user } } = await supabase.auth.getUser();
+  if (user) {
+    await supabase.rpc("bootstrap_coram_trial", { p_user_id: user.id });
+  }
+
   return NextResponse.redirect(new URL(safeNext, url.origin));
 }
