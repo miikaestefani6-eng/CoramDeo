@@ -23,7 +23,7 @@ export default async function Home() {
   const resumeReference = latestStudy?.reference || "João 1:1";
   const resumeTitle = latestStudy?.title || "João 1:1";
   const resumeHref = `/estudar?query=${encodeURIComponent(resumeReference)}`;
-  const nav = [["Início","/"],["Zion · Estudar","/estudar"],["Devocional","/devocional"],["Biblioteca","/biblioteca"],["Favoritos","/favoritos"],["Anotações","/anotacoes"],["Planos de leitura","/planos-leitura"]];
+  const nav = [["Início","/"],["Zion · Estudar","/estudar"],["Devocional","/devocional"],["Biblioteca","/biblioteca"],["Favoritos","/favoritos"],["Anotações","/anotacoes"],["Planos de leitura","/planos"]];
 
   return <div className="min-h-screen bg-[#EEE5D7] text-[#111820]">
     <aside className="fixed inset-y-0 left-0 hidden w-[276px] flex-col border-r border-white/8 bg-[#080D13] px-5 py-7 lg:flex"><Brand /><nav className="mt-12 space-y-1">{nav.map(([label,href],i)=><Link key={href} href={href} className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm transition ${i===0?'bg-[#D5B579]/10 text-[#E7C98F]':'text-white/46 hover:bg-white/[.035] hover:text-white'}`}><span className="h-1.5 w-1.5 rounded-full bg-[#D5B579]/70"/>{label}</Link>)}</nav><div className="mt-auto rounded-[22px] border border-[#C9AA72]/16 bg-[#C9AA72]/[.045] p-4"><p className="text-[10px] font-bold uppercase tracking-[.2em] text-[#D5B579]">Sua jornada</p><p className="mt-2 font-serif text-lg text-[#F8F2E8]">Continue com constância.</p><p className="mt-2 text-xs leading-5 text-white/38">Estudos, anotações e planos ficam organizados para você retornar sem recomeçar.</p></div><Link href="/conta" className="mt-4 border-t border-white/8 pt-4 text-xs text-white/45 hover:text-[#D5B579]">Minha conta →</Link></aside>
