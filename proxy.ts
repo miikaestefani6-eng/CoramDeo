@@ -6,6 +6,14 @@ export async function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
   const isPublic = pathname === "/site" || pathname === "/login" || pathname === "/assinatura" || pathname === "/termos" || pathname === "/privacidade" || pathname.startsWith("/auth/");
 
+  // Installed PWA entry: avoid a network auth lookup before showing the app.
+  // If there is an auth cookie, continue to the protected home where the session/access
+  // will be validated normally. Without an auth cookie, open login immediately.
+  if (pathname === "/app") {
+    const hasAuthCookie = request.cookies.getAll().some(({ name }) => name.startsWith("sb-") && name.includes("-auth-token"));
+    return NextResponse.redirect(new URL(hasAuthCookie ? "/" : "/login?next=/", request.url));
+  }
+
   // Public marketing/auth screens do not need a Supabase session lookup just to render.
   // Keep /site session-aware so signed-in users still return to the product instead of marketing.
   if (isPublic && pathname !== "/site") return NextResponse.next({ request });
@@ -13,13 +21,6 @@ export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request });
   const supabase = createServerClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!, { cookies: { getAll() { return request.cookies.getAll(); }, setAll(cookiesToSet) { cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value)); response = NextResponse.next({ request }); cookiesToSet.forEach(({ name, value, options }) => response.cookies.set(name, value, options)); } } });
   const { data: { user } } = await supabase.auth.getUser();
-
-  if (pathname === "/app") {
-    if (!user) return NextResponse.redirect(new URL("/login?next=/", request.url));
-    const { allowed } = await hasActiveCoramAccess();
-    if (!allowed) return NextResponse.redirect(new URL("/assinatura?next=/", request.url));
-    return NextResponse.redirect(new URL("/", request.url));
-  }
 
   if (!user && pathname === "/") return NextResponse.redirect(new URL("/site", request.url));
   if (!user && !isPublic) { const loginUrl = request.nextUrl.clone(); loginUrl.pathname = "/login"; loginUrl.search = ""; loginUrl.searchParams.set("next", pathname); return NextResponse.redirect(loginUrl); }
