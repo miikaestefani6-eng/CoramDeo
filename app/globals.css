@@ -23,12 +23,17 @@
 
 * { box-sizing: border-box; }
 
-html { min-height: 100%; }
+html {
+  min-height: 100%;
+  background: #080D13;
+}
 
 body {
   min-height: 100vh;
+  min-height: 100dvh;
   margin: 0;
-  background: var(--coram-deo-surface);
+  padding-top: env(safe-area-inset-top, 0px);
+  background: #080D13;
   color: var(--coram-deo-deep);
   font-family: var(--font-inter), Arial, Helvetica, sans-serif;
 }
