@@ -7,6 +7,16 @@ import { useRouter, useSearchParams } from "next/navigation";
 
 function safeNext(value: string | null) { return value && value.startsWith("/") && !value.startsWith("//") ? value : "/"; }
 
+function getTrialDeviceId() {
+  const key = "coram_trial_device_id";
+  let value = window.localStorage.getItem(key);
+  if (!value) {
+    value = crypto.randomUUID();
+    window.localStorage.setItem(key, value);
+  }
+  return value;
+}
+
 function Brand() {
   return <div className="flex items-center gap-3 text-[#D5B579]"><svg aria-hidden="true" viewBox="0 0 64 72" className="h-12 w-11" fill="none"><path d="M10 61V24C10 12.4 19.4 3 31 3h2c11.6 0 21 9.4 21 21v37" stroke="currentColor" strokeWidth="2.4"/><path d="M16 60V25c0-8.8 7.2-16 16-16s16 7.2 16 16v35" stroke="currentColor" strokeWidth="1.5" opacity=".65"/><path d="M15 59c8-4.4 13.7-4.5 17-.2 3.3-4.3 9-4.2 17 .2v6c-8-4.3-13.7-4.4-17-.1-3.3-4.3-9-4.2-17 .1v-6Z" fill="currentColor"/><path d="M32 20l2.7 8.3L43 31l-8.3 2.7L32 42l-2.7-8.3L21 31l8.3-2.7L32 20Z" fill="currentColor"/></svg><span><span className="block font-serif text-2xl font-semibold tracking-[.16em] text-[#F8F2E8]">CORAM DEO</span><span className="mt-1 block text-[9px] font-semibold uppercase tracking-[.28em] text-[#C9AA72]">Estudo · vida · eternidade</span></span></div>;
 }
@@ -28,14 +38,23 @@ export default function LoginClient() {
   async function submit(e: React.FormEvent) {
     e.preventDefault(); setLoading(true); setMessage("");
     const supabase = createClient();
-    const result = mode === "login" ? await supabase.auth.signInWithPassword({ email, password }) : await supabase.auth.signUp({ email, password, options: { data: { full_name: name } } });
+    const deviceId = mode === "signup" ? getTrialDeviceId() : null;
+    const result = mode === "login"
+      ? await supabase.auth.signInWithPassword({ email, password })
+      : await supabase.auth.signUp({ email, password, options: { data: { full_name: name, trial_device_id: deviceId } } });
+
     if (result.error) setMessage(result.error.message);
     else if (mode === "signup") {
-      // If email confirmation is disabled, a session already exists and the trial can start immediately.
-      // With confirmation enabled, /auth/callback starts it after the email is confirmed.
       if (result.data.session && result.data.user) {
-        await supabase.rpc("bootstrap_coram_trial", { p_user_id: result.data.user.id });
-        router.push("/");
+        const { data: trial } = await supabase.rpc("bootstrap_coram_trial", {
+          p_user_id: result.data.user.id,
+          p_device_id: deviceId,
+        });
+        if (trial && trial.started === false && ["identity_already_claimed", "device_already_claimed", "trial_reuse_detected"].includes(trial.reason)) {
+          router.push("/assinatura?reason=trial_used");
+        } else {
+          router.push("/");
+        }
         router.refresh();
       } else {
         setMessage("Cadastro realizado. Confirme seu e-mail para ativar seus 7 dias gratuitos.");
