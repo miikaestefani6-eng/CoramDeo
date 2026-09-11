@@ -5,10 +5,7 @@ const nav = [
   ["Zion · Estudar", "/estudar"],
   ["Devocional", "/devocional"],
   ["Biblioteca", "/biblioteca"],
-  ["Favoritos", "/favoritos"],
-  ["Anotações", "/anotacoes"],
   ["Planos de leitura", "/planos"],
-  ["Notificações", "/notificacoes"],
   ["Minha conta", "/conta"],
 ] as const;
 
@@ -45,7 +42,7 @@ export function ModuleShell({ title, description, children }: { title: string; d
         <div className="mt-auto rounded-[22px] border border-[#C9AA72]/16 bg-[#C9AA72]/[.045] p-4">
           <p className="text-[10px] font-bold uppercase tracking-[.2em] text-[#D5B579]">Coram Deo</p>
           <p className="mt-2 font-serif text-lg text-[#F8F2E8]">A Palavra no centro.</p>
-          <p className="mt-2 text-xs leading-5 text-white/36">Cada recurso existe para servir à sua caminhada de estudo e formação cristã.</p>
+          <p className="mt-2 text-xs leading-5 text-white/36">Favoritos e anotações ficam organizados dentro de Minha conta.</p>
         </div>
       </aside>
 
