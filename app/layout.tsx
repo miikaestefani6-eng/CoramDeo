@@ -12,8 +12,8 @@ export const metadata: Metadata = {
   applicationName: "Coram Deo",
   manifest: "/manifest.webmanifest",
   icons: {
-    icon: "/pwa-icon.svg",
-    apple: "/pwa-icon.svg",
+    icon: "/icon",
+    apple: "/apple-icon",
   },
   appleWebApp: {
     capable: true,
